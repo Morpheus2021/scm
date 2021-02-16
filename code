@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+rootFile="root.yml"
+
+if test -f "$rootFile"; then
+        rm "$rootFile"
+fi
+for f in $(ls -lv 0*.yml | awk '{print $9}')
+do
+        cat $f >> "$rootFile"
+done
+
+#Configure for REST
+#Use Jenkins cred variables here
+master_name=""
+admin_host=""
+admin_api=""
+dap_account=""
+
+#POST for APPEND
+#PUT for REPLACE
+polMethod="POST"
+
+#Load policy file
+polFile=$(cat "$rootFile")
+branch="root"
+
+#Run Policy via REST Calls
+
+#Authenticate
+authn=$(curl -vk -d "$admin_api" -X POST https://"$master_name"/authn/"$dap_account"/"$admin_host"/authenticate)
+auth_token=$(echo -n "$authn" | base64 | tr -d '\r\n')
+
+#Send policy
+response=$(curl -vk -H "Authorization: Token token=\"$auth_token\"" -X "$polMethod" -d "$polFile" https://"$master_name"/policies/"$dap_account"/policy/"$branch")
+
+#Output result with timestamp-result.json
+thisDelta=$(date +'%m-%d-%Y')
+echo "$response" > "$thisDelta"-result.json
